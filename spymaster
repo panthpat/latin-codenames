@@ -1,0 +1,73 @@
+<!-- spymaster.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codenames Spymaster</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+    .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 600px; margin: 20px auto; }
+    .card { padding: 20px; border-radius: 10px; color: white; font-weight: bold; }
+    .red { background: #ff4d4d; }
+    .blue { background: #4d79ff; }
+    .bystander { background: #999; }
+    .assassin { background: #000; }
+  </style>
+</head>
+<body>
+  <h1>Codenames Spymaster View</h1>
+  <label>Game Code (Seed): <input id="seedInput" type="number" /></label>
+  <button onclick="startGame()">Reveal Board</button>
+  <div class="board" id="board"></div>
+
+  <script>
+    function seededRandom(seed) {
+      let state = seed % 2147483647;
+      return () => (state = (state * 16807) % 2147483647) / 2147483647;
+    }
+
+    function shuffleWithSeed(array, seed) {
+      const rand = seededRandom(seed);
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function getBoard(seed) {
+      const WORDS = [
+        "apple", "moon", "python", "car", "glass", "light", "book", "computer", "space", "game",
+        "music", "star", "code", "river", "mountain", "king", "queen", "robot", "tree", "plane",
+        "giant", "tower", "shadow", "coin", "cloud"
+      ];
+
+      const ROLES = [
+        ...Array(9).fill("red"),
+        ...Array(8).fill("blue"),
+        ...Array(7).fill("bystander"),
+        "assassin"
+      ];
+
+      const words = shuffleWithSeed(WORDS, seed).slice(0, 25);
+      const roles = shuffleWithSeed(ROLES, seed);
+      return words.map((word, i) => ({ word, role: roles[i] }));
+    }
+
+    function startGame() {
+      const seed = parseInt(document.getElementById("seedInput").value);
+      const cards = getBoard(seed);
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      cards.forEach(card => {
+        const cardEl = document.createElement("div");
+        cardEl.className = `card ${card.role}`;
+        cardEl.textContent = card.word;
+        board.appendChild(cardEl);
+      });
+    }
+  </script>
+</body>
+</html>
