@@ -1,0 +1,121 @@
+<!-- player.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codenames Player</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+    .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 600px; margin: 20px auto; }
+    .card { padding: 20px; background: #fff; border: 2px solid #ccc; cursor: pointer; border-radius: 10px; transition: 0.3s; }
+    .card.revealed.red { background: #ff4d4d; color: white; }
+    .card.revealed.blue { background: #4d79ff; color: white; }
+    .card.revealed.bystander { background: #ccc; }
+    .card.revealed.assassin { background: #000; color: white; }
+    .turn { margin-top: 20px; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Codenames Player View</h1>
+  <label>Game Code (Seed): <input id="seedInput" type="number" /></label>
+  <button onclick="startGame()">Start Game</button>
+  <div class="turn" id="turn" style="display:none">Red Team's Turn</div>
+  <div class="board" id="board"></div>
+
+  <script>
+    function seededRandom(seed) {
+      let state = seed % 2147483647;
+      return () => (state = (state * 16807) % 2147483647) / 2147483647;
+    }
+
+    function shuffleWithSeed(array, seed) {
+      const rand = seededRandom(seed);
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function getBoard(seed) {
+      const WORDS = [
+        "apple", "moon", "python", "car", "glass", "light", "book", "computer", "space", "game",
+        "music", "star", "code", "river", "mountain", "king", "queen", "robot", "tree", "plane",
+        "giant", "tower", "shadow", "coin", "cloud"
+      ];
+
+      const ROLES = [
+        ...Array(9).fill("red"),
+        ...Array(8).fill("blue"),
+        ...Array(7).fill("bystander"),
+        "assassin"
+      ];
+
+      const words = shuffleWithSeed(WORDS, seed).slice(0, 25);
+      const roles = shuffleWithSeed(ROLES, seed);
+      return words.map((word, i) => ({ word, role: roles[i], revealed: false }));
+    }
+
+    let currentTeam = "red";
+    let cards = [];
+
+    function startGame() {
+      const seed = parseInt(document.getElementById("seedInput").value);
+      cards = getBoard(seed);
+      document.getElementById("turn").style.display = "block";
+      renderBoard();
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      cards.forEach((card, i) => {
+        const cardEl = document.createElement("div");
+        cardEl.className = "card" + (card.revealed ? ` revealed ${card.role}` : "");
+        cardEl.textContent = card.word;
+        cardEl.onclick = () => handleGuess(i);
+        board.appendChild(cardEl);
+      });
+      document.getElementById("turn").textContent = `${currentTeam.charAt(0).toUpperCase() + currentTeam.slice(1)} Team's Turn`;
+    }
+
+    function handleGuess(index) {
+      const card = cards[index];
+      if (card.revealed) return;
+      card.revealed = true;
+
+      if (card.role === "assassin") {
+        alert(`${currentTeam.toUpperCase()} Team hit the assassin! Game Over.`);
+        revealAll();
+        return;
+      }
+
+      if (card.role !== currentTeam) {
+        currentTeam = currentTeam === "red" ? "blue" : "red";
+      }
+
+      checkWin();
+      renderBoard();
+    }
+
+    function checkWin() {
+      const redLeft = cards.filter(c => c.role === "red" && !c.revealed).length;
+      const blueLeft = cards.filter(c => c.role === "blue" && !c.revealed).length;
+      if (redLeft === 0) {
+        alert("Red Team Wins!");
+        revealAll();
+      } else if (blueLeft === 0) {
+        alert("Blue Team Wins!");
+        revealAll();
+      }
+    }
+
+    function revealAll() {
+      cards.forEach(c => c.revealed = true);
+      renderBoard();
+    }
+  </script>
+</body>
+</html>
